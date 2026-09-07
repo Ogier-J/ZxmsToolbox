@@ -1,14 +1,66 @@
 @page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>ZXMS 极客工具箱</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
-<MudText Class="mb-8">Welcome to your new app, powered by MudBlazor and the .NET 10 Template!</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">ZXMS 极客工具箱</MudText>
+<MudText Class="mb-6" Typo="Typo.body1">轻量级在线小工具与摸鱼小游戏集合 · 纯前端运行，数据不离开你的浏览器</MudText>
 
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudCard Class="mb-4" Style="height:100%">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Code" Class="mr-2" />开发者工具</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Href="tools/base64" Icon="@Icons.Material.Filled.Lock">Base64 编解码</MudListItem>
+                    <MudListItem T="string" Href="tools/json" Icon="@Icons.Material.Filled.DataObject">JSON 格式化</MudListItem>
+                    <MudListItem T="string" Href="tools/timestamp" Icon="@Icons.Material.Filled.AccessTime">时间戳转换</MudListItem>
+                    <MudListItem T="string" Href="tools/hash" Icon="@Icons.Material.Filled.Fingerprint">哈希计算 (MD5/SHA)</MudListItem>
+                    <MudListItem T="string" Href="tools/uuid" Icon="@Icons.Material.Filled.Key">UUID 生成</MudListItem>
+                    <MudListItem T="string" Href="tools/url" Icon="@Icons.Material.Filled.Link">URL 编解码</MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
 
-<MudAlert Severity="Severity.Normal" ContentAlignment="HorizontalAlignment.Start">
-    You can find documentation and examples on our website here:
-    <MudLink Href="https://mudblazor.com" Target="_blank" Typo="Typo.body2" Color="Color.Primary">
-        <b>www.mudblazor.com</b>
-    </MudLink>
+    <MudItem xs="12" md="4">
+        <MudCard Class="mb-4" Style="height:100%">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.BusinessCenter" Class="mr-2" />站长与办公</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Href="tools/password" Icon="@Icons.Material.Filled.Password">密码生成器</MudListItem>
+                    <MudListItem T="string" Href="tools/wordcount" Icon="@Icons.Material.Filled.TextFields">字数统计</MudListItem>
+                    <MudListItem T="string" Href="tools/color" Icon="@Icons.Material.Filled.Palette">颜色转换</MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudCard Class="mb-4" Style="height:100%">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.SportsEsports" Class="mr-2" />摸鱼小游戏</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Href="games/2048" Icon="@Icons.Material.Filled.GridOn">2048</MudListItem>
+                    <MudListItem T="string" Href="games/tictactoe" Icon="@Icons.Material.Filled.Grid3x3">井字棋</MudListItem>
+                    <MudListItem T="string" Href="games/snake" Icon="@Icons.Material.Filled.PestControl">贪吃蛇</MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mt-4" Variant="Variant.Outlined">
+    所有工具均在浏览器本地运行，不会上传任何数据。欢迎收藏使用～
 </MudAlert>

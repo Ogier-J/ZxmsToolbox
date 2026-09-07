@@ -1,0 +1,48 @@
+@page "/tools/uuid"
+
+<PageTitle>UUID 生成</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">UUID / GUID 生成器</MudText>
+
+<MudNumericField T="int" Label="生成数量" @bind-Value="count" Min="1" Max="100" Variant="Variant.Outlined" Class="mb-3" Style="max-width:200px" />
+
+<MudStack Row="true" Class="mb-4" Wrap="Wrap.Wrap">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate">生成</MudButton>
+    <MudButton Variant="Variant.Outlined" OnClick="GenerateUpper">生成 (大写)</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="Clear">清空</MudButton>
+</MudStack>
+
+@if (!string.IsNullOrEmpty(output))
+{
+    <MudTextField T="string" Label="生成结果" Variant="Variant.Outlined" Lines="12"
+                  Value="@output" ReadOnly="true" />
+    <MudButton Variant="Variant.Text" Size="Size.Small" Class="mt-2" OnClick="CopyHint">已生成 @count 个 UUID</MudButton>
+}
+
+@code {
+    private int count = 5;
+    private string output = "";
+
+    private void Generate()
+    {
+        var list = new List<string>();
+        for (int i = 0; i < count; i++)
+            list.Add(Guid.NewGuid().ToString());
+        output = string.Join("\n", list);
+    }
+
+    private void GenerateUpper()
+    {
+        var list = new List<string>();
+        for (int i = 0; i < count; i++)
+            list.Add(Guid.NewGuid().ToString().ToUpperInvariant());
+        output = string.Join("\n", list);
+    }
+
+    private void Clear()
+    {
+        output = "";
+    }
+
+    private void CopyHint() { /* 提示用户手动复制，纯 WASM 无额外剪贴板依赖 */ }
+}

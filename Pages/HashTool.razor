@@ -1,0 +1,59 @@
+@page "/tools/hash"
+@using System.Security.Cryptography
+@using System.Text
+
+<PageTitle>哈希计算</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">哈希计算 (MD5 / SHA)</MudText>
+
+<MudTextField T="string" Label="输入文本" Variant="Variant.Outlined" Lines="6"
+              @bind-Value="inputText" Immediate="true" Class="mb-4" />
+
+<MudStack Row="true" Class="mb-4" Wrap="Wrap.Wrap">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ComputeAll">计算全部</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="Clear">清空</MudButton>
+</MudStack>
+
+@if (results.Count > 0)
+{
+    <MudSimpleTable Dense="true" Hover="true" Bordered="true">
+        <thead>
+            <tr>
+                <th>算法</th>
+                <th>结果 (小写十六进制)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in results)
+            {
+                <tr>
+                    <td>@r.Key</td>
+                    <td style="word-break:break-all;font-family:monospace">@r.Value</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private string inputText = "";
+    private Dictionary<string, string> results = new();
+
+    private void ComputeAll()
+    {
+        results.Clear();
+        var bytes = Encoding.UTF8.GetBytes(inputText ?? "");
+
+        results["MD5"] = Convert.ToHexString(MD5.HashData(bytes)).ToLowerInvariant();
+        results["SHA1"] = Convert.ToHexString(SHA1.HashData(bytes)).ToLowerInvariant();
+        results["SHA256"] = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        results["SHA384"] = Convert.ToHexString(SHA384.HashData(bytes)).ToLowerInvariant();
+        results["SHA512"] = Convert.ToHexString(SHA512.HashData(bytes)).ToLowerInvariant();
+    }
+
+    private void Clear()
+    {
+        inputText = "";
+        results.Clear();
+    }
+}

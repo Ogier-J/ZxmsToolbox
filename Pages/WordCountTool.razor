@@ -1,0 +1,69 @@
+@page "/tools/wordcount"
+
+<PageTitle>字数统计</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">文本字数统计</MudText>
+
+<MudTextField T="string" Label="粘贴或输入文本" Variant="Variant.Outlined" Lines="12"
+              Value="@inputText" ValueChanged="OnTextChanged" Immediate="true" Class="mb-4" />
+
+<MudGrid>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4">@charCount</MudText>
+            <MudText Typo="Typo.caption">字符数 (含空格)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4">@charNoSpace</MudText>
+            <MudText Typo="Typo.caption">字符数 (不含空格)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4">@wordCount</MudText>
+            <MudText Typo="Typo.caption">单词数 (英文)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4">@lineCount</MudText>
+            <MudText Typo="Typo.caption">行数</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4">@chineseCount</MudText>
+            <MudText Typo="Typo.caption">中文字符</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4">@byteCount</MudText>
+            <MudText Typo="Typo.caption">字节数 (UTF-8)</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string inputText = "";
+    private int charCount, charNoSpace, wordCount, lineCount, chineseCount, byteCount;
+
+    private void OnTextChanged(string text)
+    {
+        inputText = text ?? "";
+        Compute();
+    }
+
+    private void Compute()
+    {
+        var t = inputText ?? "";
+        charCount = t.Length;
+        charNoSpace = t.Count(c => !char.IsWhiteSpace(c));
+        lineCount = string.IsNullOrEmpty(t) ? 0 : t.Split('\n').Length;
+        wordCount = string.IsNullOrWhiteSpace(t) ? 0 : t.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
+        chineseCount = t.Count(c => c >= 0x4E00 && c <= 0x9FFF);
+        byteCount = System.Text.Encoding.UTF8.GetByteCount(t);
+    }
+}

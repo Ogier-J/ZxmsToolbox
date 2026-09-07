@@ -1,0 +1,100 @@
+@page "/tools/timestamp"
+
+<PageTitle>时间戳转换</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">Unix 时间戳转换</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">当前时间</MudText>
+            <MudText Typo="Typo.h6">@currentLocal</MudText>
+            <MudText Typo="Typo.body2" Class="mt-1">UTC: @currentUtc</MudText>
+            <MudText Typo="Typo.body2">时间戳 (秒): @currentTs</MudText>
+            <MudText Typo="Typo.body2">时间戳 (毫秒): @currentTsMs</MudText>
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" Class="mt-3" OnClick="RefreshNow">刷新</MudButton>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">时间戳 → 日期时间</MudText>
+            <MudTextField T="string" Label="输入时间戳 (秒或毫秒)" Variant="Variant.Outlined"
+                          @bind-Value="tsInput" Immediate="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="TsToDate">转换</MudButton>
+            @if (!string.IsNullOrEmpty(tsResult))
+            {
+                <MudText Class="mt-3">@tsResult</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4 mt-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">日期时间 → 时间戳</MudText>
+            <MudDatePicker Label="选择日期" @bind-Date="selectedDate" Variant="Variant.Outlined" Class="mb-2" />
+            <MudTimePicker Label="选择时间" @bind-Time="selectedTime" Variant="Variant.Outlined" AmPm="false" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="DateToTs">转换</MudButton>
+            @if (!string.IsNullOrEmpty(dateResult))
+            {
+                <MudText Class="mt-3">@dateResult</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string currentLocal = "";
+    private string currentUtc = "";
+    private long currentTs;
+    private long currentTsMs;
+    private string tsInput = "";
+    private string tsResult = "";
+    private DateTime? selectedDate = DateTime.Now.Date;
+    private TimeSpan? selectedTime = DateTime.Now.TimeOfDay;
+    private string dateResult = "";
+
+    protected override void OnInitialized()
+    {
+        RefreshNow();
+    }
+
+    private void RefreshNow()
+    {
+        var now = DateTimeOffset.Now;
+        currentLocal = now.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+        currentUtc = now.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+        currentTs = now.ToUnixTimeSeconds();
+        currentTsMs = now.ToUnixTimeMilliseconds();
+    }
+
+    private void TsToDate()
+    {
+        if (string.IsNullOrWhiteSpace(tsInput) || !long.TryParse(tsInput.Trim(), out long ts))
+        {
+            tsResult = "请输入有效数字";
+            return;
+        }
+        // 判断秒还是毫秒
+        DateTimeOffset dto;
+        if (ts > 9999999999) // 毫秒
+            dto = DateTimeOffset.FromUnixTimeMilliseconds(ts);
+        else
+            dto = DateTimeOffset.FromUnixTimeSeconds(ts);
+
+        tsResult = $"本地: {dto.ToLocalTime():yyyy-MM-dd HH:mm:ss}\nUTC: {dto.UtcDateTime:yyyy-MM-dd HH:mm:ss}";
+    }
+
+    private void DateToTs()
+    {
+        if (selectedDate == null)
+        {
+            dateResult = "请选择日期";
+            return;
+        }
+        var time = selectedTime ?? TimeSpan.Zero;
+        var dt = selectedDate.Value.Date + time;
+        var dto = new DateTimeOffset(dt);
+        dateResult = $"时间戳 (秒): {dto.ToUnixTimeSeconds()}\n时间戳 (毫秒): {dto.ToUnixTimeMilliseconds()}";
+    }
+}

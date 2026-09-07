@@ -1,4 +1,24 @@
 <MudNavMenu>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">首页</MudNavLink>
-    <MudNavLink Href="tools/base64" Icon="@Icons.Material.Filled.Lock">Base64 编解码</MudNavLink>
+
+    <MudNavGroup Title="开发者工具" Icon="@Icons.Material.Filled.Code" Expanded="true">
+        <MudNavLink Href="tools/base64" Icon="@Icons.Material.Filled.Lock">Base64 编解码</MudNavLink>
+        <MudNavLink Href="tools/json" Icon="@Icons.Material.Filled.DataObject">JSON 格式化</MudNavLink>
+        <MudNavLink Href="tools/timestamp" Icon="@Icons.Material.Filled.AccessTime">时间戳转换</MudNavLink>
+        <MudNavLink Href="tools/hash" Icon="@Icons.Material.Filled.Fingerprint">哈希计算</MudNavLink>
+        <MudNavLink Href="tools/uuid" Icon="@Icons.Material.Filled.Key">UUID 生成</MudNavLink>
+        <MudNavLink Href="tools/url" Icon="@Icons.Material.Filled.Link">URL 编解码</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="站长与办公" Icon="@Icons.Material.Filled.BusinessCenter" Expanded="true">
+        <MudNavLink Href="tools/password" Icon="@Icons.Material.Filled.Password">密码生成器</MudNavLink>
+        <MudNavLink Href="tools/wordcount" Icon="@Icons.Material.Filled.TextFields">字数统计</MudNavLink>
+        <MudNavLink Href="tools/color" Icon="@Icons.Material.Filled.Palette">颜色转换</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="摸鱼小游戏" Icon="@Icons.Material.Filled.SportsEsports" Expanded="true">
+        <MudNavLink Href="games/2048" Icon="@Icons.Material.Filled.GridOn">2048</MudNavLink>
+        <MudNavLink Href="games/tictactoe" Icon="@Icons.Material.Filled.Grid3x3">井字棋</MudNavLink>
+        <MudNavLink Href="games/snake" Icon="@Icons.Material.Filled.PestControl">贪吃蛇</MudNavLink>
+    </MudNavGroup>
 </MudNavMenu>

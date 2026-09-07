@@ -1,0 +1,92 @@
+@page "/tools/json"
+
+<PageTitle>JSON 格式化</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">JSON 格式化与校验</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudTextField T="string" Label="输入 JSON" Variant="Variant.Outlined" Lines="14"
+                      @bind-Value="inputText" Immediate="true" />
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudTextField T="string" Label="处理结果" Variant="Variant.Outlined" Lines="14"
+                      Value="@outputText" ReadOnly="true" />
+    </MudItem>
+</MudGrid>
+
+<MudStack Row="true" Class="mt-4" Wrap="Wrap.Wrap">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Format">格式化 (Beautify)</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Minify">压缩 (Minify)</MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Info" OnClick="Validate">仅校验</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="Clear">清空</MudButton>
+</MudStack>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <MudAlert Severity="@statusSeverity" Class="mt-4" Dense="true">@statusMessage</MudAlert>
+}
+
+@code {
+    private string inputText = "";
+    private string outputText = "";
+    private string statusMessage = "";
+    private Severity statusSeverity = Severity.Info;
+
+    private void Format()
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(inputText ?? "");
+            outputText = System.Text.Json.JsonSerializer.Serialize(doc, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            statusMessage = "格式化成功";
+            statusSeverity = Severity.Success;
+        }
+        catch (Exception ex)
+        {
+            outputText = "";
+            statusMessage = "JSON 无效: " + ex.Message;
+            statusSeverity = Severity.Error;
+        }
+    }
+
+    private void Minify()
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(inputText ?? "");
+            outputText = System.Text.Json.JsonSerializer.Serialize(doc);
+            statusMessage = "压缩成功";
+            statusSeverity = Severity.Success;
+        }
+        catch (Exception ex)
+        {
+            outputText = "";
+            statusMessage = "JSON 无效: " + ex.Message;
+            statusSeverity = Severity.Error;
+        }
+    }
+
+    private void Validate()
+    {
+        try
+        {
+            System.Text.Json.JsonDocument.Parse(inputText ?? "");
+            statusMessage = "JSON 合法";
+            statusSeverity = Severity.Success;
+            outputText = inputText;
+        }
+        catch (Exception ex)
+        {
+            statusMessage = "JSON 无效: " + ex.Message;
+            statusSeverity = Severity.Error;
+        }
+    }
+
+    private void Clear()
+    {
+        inputText = "";
+        outputText = "";
+        statusMessage = "";
+    }
+}

@@ -1,0 +1,238 @@
+@page "/games/2048"
+@using Microsoft.AspNetCore.Components.Web
+
+<PageTitle>2048</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-2">2048</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">使用方向键或 WASD 移动 · 合并相同数字 · 目标 2048</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudChip T="string" Color="Color.Primary">分数: @score</MudChip>
+    <MudChip T="string" Color="Color.Secondary">最高: @best</MudChip>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="NewGame">新游戏</MudButton>
+</MudStack>
+
+@if (gameOver)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-3">游戏结束！最终分数: @score</MudAlert>
+}
+@if (won && !continueAfterWin)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-3">
+        恭喜达到 2048！
+        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => continueAfterWin = true">继续玩</MudButton>
+    </MudAlert>
+}
+
+<div tabindex="0" @onkeydown="HandleKey" @ref="boardRef"
+     style="outline:none; display:inline-block; background:#bbada0; padding:8px; border-radius:8px; user-select:none;">
+    @for (int i = 0; i < 4; i++)
+    {
+        <div style="display:flex;">
+            @for (int j = 0; j < 4; j++)
+            {
+                var val = board[i, j];
+                <div style="@TileStyle(val)">
+                    @(val == 0 ? "" : val.ToString())
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<MudText Typo="Typo.caption" Class="mt-3">点击棋盘区域后可用键盘操作</MudText>
+
+@code {
+    private int[,] board = new int[4, 4];
+    private int score;
+    private int best;
+    private bool gameOver;
+    private bool won;
+    private bool continueAfterWin;
+    private ElementReference boardRef;
+    private readonly Random rng = new();
+
+    protected override void OnInitialized()
+    {
+        NewGame();
+    }
+
+    private void NewGame()
+    {
+        board = new int[4, 4];
+        score = 0;
+        gameOver = false;
+        won = false;
+        continueAfterWin = false;
+        AddRandom();
+        AddRandom();
+    }
+
+    private void AddRandom()
+    {
+        var empty = new List<(int r, int c)>();
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                if (board[i, j] == 0) empty.Add((i, j));
+        if (empty.Count == 0) return;
+        var (r, c) = empty[rng.Next(empty.Count)];
+        board[r, c] = rng.Next(10) < 9 ? 2 : 4;
+    }
+
+    private async Task HandleKey(KeyboardEventArgs e)
+    {
+        if (gameOver) return;
+        if (won && !continueAfterWin) return;
+
+        bool moved = e.Key switch
+        {
+            "ArrowLeft" or "a" or "A" => MoveLeft(),
+            "ArrowRight" or "d" or "D" => MoveRight(),
+            "ArrowUp" or "w" or "W" => MoveUp(),
+            "ArrowDown" or "s" or "S" => MoveDown(),
+            _ => false
+        };
+
+        if (moved)
+        {
+            AddRandom();
+            CheckWin();
+            CheckGameOver();
+            if (score > best) best = score;
+            StateHasChanged();
+        }
+    }
+
+    private bool MoveLeft()
+    {
+        bool moved = false;
+        for (int i = 0; i < 4; i++)
+        {
+            var line = new int[4];
+            for (int j = 0; j < 4; j++) line[j] = board[i, j];
+            var (newLine, s, m) = MergeLine(line);
+            if (m) moved = true;
+            score += s;
+            for (int j = 0; j < 4; j++) board[i, j] = newLine[j];
+        }
+        return moved;
+    }
+
+    private bool MoveRight()
+    {
+        bool moved = false;
+        for (int i = 0; i < 4; i++)
+        {
+            var line = new int[4];
+            for (int j = 0; j < 4; j++) line[j] = board[i, 3 - j];
+            var (newLine, s, m) = MergeLine(line);
+            if (m) moved = true;
+            score += s;
+            for (int j = 0; j < 4; j++) board[i, 3 - j] = newLine[j];
+        }
+        return moved;
+    }
+
+    private bool MoveUp()
+    {
+        bool moved = false;
+        for (int j = 0; j < 4; j++)
+        {
+            var line = new int[4];
+            for (int i = 0; i < 4; i++) line[i] = board[i, j];
+            var (newLine, s, m) = MergeLine(line);
+            if (m) moved = true;
+            score += s;
+            for (int i = 0; i < 4; i++) board[i, j] = newLine[i];
+        }
+        return moved;
+    }
+
+    private bool MoveDown()
+    {
+        bool moved = false;
+        for (int j = 0; j < 4; j++)
+        {
+            var line = new int[4];
+            for (int i = 0; i < 4; i++) line[i] = board[3 - i, j];
+            var (newLine, s, m) = MergeLine(line);
+            if (m) moved = true;
+            score += s;
+            for (int i = 0; i < 4; i++) board[3 - i, j] = newLine[i];
+        }
+        return moved;
+    }
+
+    private static (int[] line, int score, bool moved) MergeLine(int[] line)
+    {
+        var filtered = line.Where(x => x != 0).ToList();
+        int s = 0;
+        bool moved = false;
+        var result = new List<int>();
+        for (int i = 0; i < filtered.Count; i++)
+        {
+            if (i + 1 < filtered.Count && filtered[i] == filtered[i + 1])
+            {
+                int merged = filtered[i] * 2;
+                result.Add(merged);
+                s += merged;
+                i++;
+                moved = true;
+            }
+            else
+            {
+                result.Add(filtered[i]);
+            }
+        }
+        while (result.Count < 4) result.Add(0);
+        for (int i = 0; i < 4; i++)
+            if (result[i] != line[i]) moved = true;
+        return (result.ToArray(), s, moved);
+    }
+
+    private void CheckWin()
+    {
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                if (board[i, j] == 2048) { won = true; return; }
+    }
+
+    private void CheckGameOver()
+    {
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                if (board[i, j] == 0) return;
+
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+            {
+                int v = board[i, j];
+                if (j + 1 < 4 && board[i, j + 1] == v) return;
+                if (i + 1 < 4 && board[i + 1, j] == v) return;
+            }
+        gameOver = true;
+    }
+
+    private string TileStyle(int val)
+    {
+        string bg = val switch
+        {
+            0 => "#cdc1b4",
+            2 => "#eee4da",
+            4 => "#ede0c8",
+            8 => "#f2b179",
+            16 => "#f59563",
+            32 => "#f67c5f",
+            64 => "#f65e3b",
+            128 => "#edcf72",
+            256 => "#edcc61",
+            512 => "#edc850",
+            1024 => "#edc53f",
+            2048 => "#edc22e",
+            _ => "#3c3a32"
+        };
+        string color = val <= 4 ? "#776e65" : "#f9f6f2";
+        string size = val >= 1000 ? "22px" : "28px";
+        return $"width:70px;height:70px;margin:4px;background:{bg};color:{color};display:flex;align-items:center;justify-content:center;font-size:{size};font-weight:bold;border-radius:4px;";
+    }
+}

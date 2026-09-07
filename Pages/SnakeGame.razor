@@ -1,0 +1,165 @@
+@page "/games/snake"
+@using Microsoft.AspNetCore.Components.Web
+@implements IDisposable
+
+<PageTitle>贪吃蛇</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-2">贪吃蛇</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">方向键或 WASD 控制 · 吃到食物变长 · 撞墙或撞自己即结束</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudChip T="string" Color="Color.Primary">分数: @score</MudChip>
+    <MudChip T="string" Color="Color.Secondary">长度: @snake.Count</MudChip>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="StartGame" Disabled="@running">开始</MudButton>
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="StopGame" Disabled="@(!running)">暂停</MudButton>
+</MudStack>
+
+@if (gameOver)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-3">游戏结束！得分: @score · 按开始重新玩</MudAlert>
+}
+
+<div tabindex="0" @onkeydown="HandleKey" @ref="boardRef"
+     style="outline:none; display:inline-block; background:#1a1a27; padding:4px; border-radius:6px; border:2px solid #333;">
+    <div style="display:grid; grid-template-columns:repeat(@Cols, 18px); grid-template-rows:repeat(@Rows, 18px); gap:1px;">
+        @for (int y = 0; y < Rows; y++)
+        {
+            @for (int x = 0; x < Cols; x++)
+            {
+                var cell = GetCell(x, y);
+                <div style="width:18px;height:18px;background:@cell;border-radius:2px;"></div>
+            }
+        }
+    </div>
+</div>
+
+<MudText Typo="Typo.caption" Class="mt-3">点击游戏区域后使用键盘操作</MudText>
+
+@code {
+    private const int Cols = 20;
+    private const int Rows = 16;
+    private List<(int x, int y)> snake = new();
+    private (int x, int y) food;
+    private (int dx, int dy) dir = (1, 0);
+    private (int dx, int dy) nextDir = (1, 0);
+    private int score;
+    private bool running;
+    private bool gameOver;
+    private System.Threading.Timer? timer;
+    private ElementReference boardRef;
+    private readonly Random rng = new();
+
+    protected override void OnInitialized()
+    {
+        ResetSnake();
+    }
+
+    private void ResetSnake()
+    {
+        snake = new List<(int, int)> { (5, 8), (4, 8), (3, 8) };
+        dir = (1, 0);
+        nextDir = (1, 0);
+        score = 0;
+        gameOver = false;
+        PlaceFood();
+    }
+
+    private void StartGame()
+    {
+        if (gameOver) ResetSnake();
+        running = true;
+        timer?.Dispose();
+        timer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                Tick();
+                StateHasChanged();
+            });
+        }, null, 0, 150);
+    }
+
+    private void StopGame()
+    {
+        running = false;
+        timer?.Dispose();
+        timer = null;
+    }
+
+    private void Tick()
+    {
+        if (!running || gameOver) return;
+        dir = nextDir;
+        var head = snake[0];
+        var newHead = (head.x + dir.dx, head.y + dir.dy);
+
+        // 撞墙
+        if (newHead.Item1 < 0 || newHead.Item1 >= Cols || newHead.Item2 < 0 || newHead.Item2 >= Rows)
+        {
+            EndGame();
+            return;
+        }
+        // 撞自己
+        if (snake.Contains(newHead))
+        {
+            EndGame();
+            return;
+        }
+
+        snake.Insert(0, newHead);
+        if (newHead == food)
+        {
+            score += 10;
+            PlaceFood();
+        }
+        else
+        {
+            snake.RemoveAt(snake.Count - 1);
+        }
+    }
+
+    private void EndGame()
+    {
+        gameOver = true;
+        running = false;
+        timer?.Dispose();
+        timer = null;
+    }
+
+    private void PlaceFood()
+    {
+        do
+        {
+            food = (rng.Next(Cols), rng.Next(Rows));
+        } while (snake.Contains(food));
+    }
+
+    private void HandleKey(KeyboardEventArgs e)
+    {
+        var (dx, dy) = e.Key switch
+        {
+            "ArrowLeft" or "a" or "A" => (-1, 0),
+            "ArrowRight" or "d" or "D" => (1, 0),
+            "ArrowUp" or "w" or "W" => (0, -1),
+            "ArrowDown" or "s" or "S" => (0, 1),
+            _ => (0, 0)
+        };
+        if (dx == 0 && dy == 0) return;
+        // 禁止直接反向
+        if (dx + dir.dx == 0 && dy + dir.dy == 0) return;
+        nextDir = (dx, dy);
+    }
+
+    private string GetCell(int x, int y)
+    {
+        if (snake.Count > 0 && snake[0].x == x && snake[0].y == y) return "#7e6fff"; // 头
+        if (snake.Any(s => s.x == x && s.y == y)) return "#a99fff"; // 身
+        if (food.x == x && food.y == y) return "#ff6b6b"; // 食物
+        return "#2a2833";
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

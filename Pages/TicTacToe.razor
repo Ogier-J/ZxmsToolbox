@@ -1,0 +1,117 @@
+@page "/games/tictactoe"
+
+<PageTitle>井字棋</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-2">井字棋 (Tic-Tac-Toe)</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">玩家 vs 电脑 · 你是 X，电脑是 O</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudChip T="string" Color="Color.Primary">状态: @status</MudChip>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="Reset">重新开始</MudButton>
+</MudStack>
+
+<div style="display:inline-grid; grid-template-columns:repeat(3, 80px); gap:6px; background:#333; padding:6px; border-radius:8px;">
+    @for (int i = 0; i < 9; i++)
+    {
+        var idx = i;
+        <button style="@CellStyle(board[idx])" @onclick="() => PlayerMove(idx)" disabled="@(board[idx] != ' ' || gameOver)">
+            @board[idx]
+        </button>
+    }
+</div>
+
+@code {
+    private char[] board = new char[9];
+    private bool gameOver;
+    private string status = "你的回合 (X)";
+    private readonly Random rng = new();
+
+    protected override void OnInitialized() => Reset();
+
+    private void Reset()
+    {
+        board = Enumerable.Repeat(' ', 9).ToArray();
+        gameOver = false;
+        status = "你的回合 (X)";
+    }
+
+    private void PlayerMove(int idx)
+    {
+        if (gameOver || board[idx] != ' ') return;
+        board[idx] = 'X';
+        if (CheckWin('X'))
+        {
+            status = "你赢了！🎉";
+            gameOver = true;
+            return;
+        }
+        if (IsFull())
+        {
+            status = "平局";
+            gameOver = true;
+            return;
+        }
+        status = "电脑思考中...";
+        StateHasChanged();
+        // 简单延迟感，实际同步执行
+        ComputerMove();
+    }
+
+    private void ComputerMove()
+    {
+        // 优先赢，其次挡，最后随机
+        int move = FindWinningMove('O') ?? FindWinningMove('X') ?? FindRandom();
+        if (move < 0) return;
+        board[move] = 'O';
+        if (CheckWin('O'))
+        {
+            status = "电脑赢了 🤖";
+            gameOver = true;
+            return;
+        }
+        if (IsFull())
+        {
+            status = "平局";
+            gameOver = true;
+            return;
+        }
+        status = "你的回合 (X)";
+    }
+
+    private int? FindWinningMove(char player)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            if (board[i] != ' ') continue;
+            board[i] = player;
+            bool win = CheckWin(player);
+            board[i] = ' ';
+            if (win) return i;
+        }
+        return null;
+    }
+
+    private int FindRandom()
+    {
+        var empty = Enumerable.Range(0, 9).Where(i => board[i] == ' ').ToList();
+        return empty.Count == 0 ? -1 : empty[rng.Next(empty.Count)];
+    }
+
+    private bool CheckWin(char p)
+    {
+        int[][] lines = {
+            new[]{0,1,2}, new[]{3,4,5}, new[]{6,7,8},
+            new[]{0,3,6}, new[]{1,4,7}, new[]{2,5,8},
+            new[]{0,4,8}, new[]{2,4,6}
+        };
+        return lines.Any(l => board[l[0]] == p && board[l[1]] == p && board[l[2]] == p);
+    }
+
+    private bool IsFull() => board.All(c => c != ' ');
+
+    private string CellStyle(char c)
+    {
+        string color = c == 'X' ? "#7e6fff" : c == 'O' ? "#ff6b6b" : "#eee";
+        return $"width:80px;height:80px;font-size:36px;font-weight:bold;background:#1e1e2d;color:{color};border:none;border-radius:4px;cursor:pointer;";
+    }
+}

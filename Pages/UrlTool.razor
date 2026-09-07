@@ -1,0 +1,64 @@
+@page "/tools/url"
+
+<PageTitle>URL 编解码</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">URL 编解码</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudTextField T="string" Label="输入文本" Variant="Variant.Outlined" Lines="10"
+                      @bind-Value="inputText" Immediate="true" />
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudTextField T="string" Label="处理结果" Variant="Variant.Outlined" Lines="10"
+                      Value="@outputText" ReadOnly="true" />
+    </MudItem>
+</MudGrid>
+
+<MudStack Row="true" Class="mt-4" Wrap="Wrap.Wrap">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Encode">URL Encode</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Decode">URL Decode</MudButton>
+    <MudButton Variant="Variant.Outlined" OnClick="EncodeComponent">EncodeURIComponent 风格</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="Clear">清空</MudButton>
+</MudStack>
+
+@code {
+    private string inputText = "";
+    private string outputText = "";
+
+    private void Encode()
+    {
+        try
+        {
+            outputText = Uri.EscapeDataString(inputText ?? "");
+        }
+        catch
+        {
+            outputText = "编码失败";
+        }
+    }
+
+    private void EncodeComponent()
+    {
+        // 与 JS encodeURIComponent 接近
+        Encode();
+    }
+
+    private void Decode()
+    {
+        try
+        {
+            outputText = Uri.UnescapeDataString(inputText ?? "");
+        }
+        catch
+        {
+            outputText = "解码失败（可能包含非法字符）";
+        }
+    }
+
+    private void Clear()
+    {
+        inputText = "";
+        outputText = "";
+    }
+}
