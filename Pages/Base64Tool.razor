@@ -1,0 +1,40 @@
+﻿@page "/tools/base64"
+
+<MudText Typo="Typo.h5" Class="mb-4">Base64 文本编解码工具</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudTextField T="string" Label="输入原文或 Base64 文本" Variant="Variant.Outlined" Lines="8"
+                      Value="@inputText" ValueChanged="OnInputChanged" Immediate="true" />
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudTextField T="string" Label="处理结果" Variant="Variant.Outlined" Lines="8"
+                      Value="@outputText" ReadOnly="true" />
+    </MudItem>
+</MudGrid>
+
+<MudStack Row="true" Class="mt-4">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Encode">Base64 编码</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="Decode">Base64 解码</MudButton>
+</MudStack>
+
+@code {
+    private string inputText = "";
+    private string outputText = "";
+
+    private void OnInputChanged(string text)
+    {
+        inputText = text;
+        Encode();
+    }
+    private void Encode()
+    {
+        try { outputText = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(inputText ?? "")); }
+        catch { outputText = "编码失败"; }
+    }
+    private void Decode()
+    {
+        try { outputText = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(inputText ?? "")); }
+        catch { outputText = "无效的 Base64 字符串"; }
+    }
+}

@@ -1,0 +1,33 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Publish App
+      run: dotnet publish -c Release -o output
+
+    # 复制 index.html 为 404.html 以支持 Blazor 单页路由刷新
+    - name: Copy index.html to 404.html
+      run: cp output/wwwroot/index.html output/wwwroot/404.html
+
+    # 自动写入二级域名到 CNAME 部署目录
+    - name: Add CNAME
+      run: echo 'zxms.dpdns.org' > output/wwwroot/CNAME
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./output/wwwroot
