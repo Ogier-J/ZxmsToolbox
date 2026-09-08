@@ -1,0 +1,48 @@
+@page "/tools/particle-editor"
+@inject NavigationManager Nav
+
+<PageTitle>粒子特效在线编辑器</PageTitle>
+
+<div class="pe-page">
+    <div class="pe-header">
+        <MudText Typo="Typo.h6">粒子特效在线编辑器</MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            Cocos2d-x / Creator 粒子系统 · 实时预览 · 导出 .plist + 纹理
+        </MudText>
+        <MudButton Variant="Variant.Text" Size="Size.Small" Href="particle-editor/index.html" Target="_blank"
+                   StartIcon="@Icons.Material.Filled.OpenInNew">
+            新窗口打开
+        </MudButton>
+    </div>
+    <iframe src="particle-editor/index.html"
+            class="pe-iframe"
+            title="Particle Editor"
+            allow="fullscreen"
+            referrerpolicy="no-referrer"></iframe>
+</div>
+
+<style>
+    .pe-page {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 64px);
+        margin: -16px;
+    }
+    .pe-header {
+        flex: 0 0 auto;
+        padding: 12px 16px 8px;
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        background: var(--mud-palette-background);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+    }
+    .pe-iframe {
+        flex: 1 1 auto;
+        width: 100%;
+        border: none;
+        background: #0d0d1a;
+        min-height: 480px;
+    }
+</style>

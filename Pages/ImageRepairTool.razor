@@ -1,0 +1,313 @@
+@page "/tools/image-repair"
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>AI 图片修复 / 水印去除</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-2">AI 图片修复 · 水印去除</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">
+    纯浏览器运行 · 图片不会上传到任何服务器。用画笔涂抹需要去除的水印/文字/污点，然后点击「开始修复」。
+</MudText>
+
+<MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" Variant="Variant.Outlined">
+    当前使用高质量局部像素修复算法（适合小面积半透明水印、角标、文字）。
+    完整 MI-GAN 深度模型（约 29MB）可后续按需加载以获得更强生成式填充效果。
+</MudAlert>
+
+<input type="file" accept="image/*" @ref="_fileInput" style="display:none" @onchange="OnFileSelected" />
+
+<MudStack Row="true" Class="mb-3" Wrap="Wrap.Wrap">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
+               OnClick="TriggerUpload" Disabled="@_processing">选择图片</MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Brush"
+               OnClick="@(() => SetMode("brush"))" Disabled="@(!_hasImage || _processing)">画笔</MudButton>
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AutoFixOff"
+               OnClick="@(() => SetMode("eraser"))" Disabled="@(!_hasImage || _processing)">橡皮</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="ClearMask" Disabled="@(!_hasImage || _processing)">清除遮罩</MudButton>
+    <MudToggleIconButton Toggled="@_eraseMode"
+                         ToggledChanged="OnOutputModeChanged"
+                         Icon="@Icons.Material.Filled.AutoFixHigh"
+                         ToggledIcon="@Icons.Material.Filled.LayersClear"
+                         Title="修复模式（填充背景）"
+                         ToggledTitle="透明模式（挖空区域）"
+                         Color="Color.Default"
+                         ToggledColor="Color.Warning"
+                         Disabled="@(!_hasImage || _processing)" />
+    <MudText Typo="Typo.caption" Style="align-self:center">@(_eraseMode ? "透明模式" : "修复模式")</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.AutoFixHigh"
+               OnClick="Process" Disabled="@(!_hasImage || _processing)">
+        @(_processing ? "处理中..." : (_eraseMode ? "开始抠空" : "开始修复"))
+    </MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.AutoAwesome"
+               OnClick="RemoveBackground" Disabled="@(!_hasImage || _processing)"
+               Title="根据四角颜色自动把背景变成透明，适合 Logo / 图标去底">
+        一键去背景
+    </MudButton>
+    @if (!string.IsNullOrEmpty(_resultUrl))
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download"
+                   Href="@_resultUrl" Download="repaired.png">下载结果</MudButton>
+    }
+</MudStack>
+
+@if (_hasImage)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.caption">画笔大小</MudText>
+        <MudSlider T="int" Value="@_brushSize" ValueChanged="OnBrushSizeChanged" Min="4" Max="80" Step="2" Style="width:180px" />
+        <MudText Typo="Typo.caption">@_brushSize px · 当前模式: @(_mode == "brush" ? "画笔（红色半透明）" : "橡皮")</MudText>
+    </MudStack>
+}
+
+<div class="image-repair-canvas-wrap" style="position:relative; display:inline-block; max-width:100%; border:1px solid var(--mud-palette-lines-default); border-radius:8px; overflow:auto;">
+    <canvas id="repair-canvas" style="display:block; max-width:100%; cursor:crosshair;"></canvas>
+    <canvas id="repair-mask" style="display:none;"></canvas>
+</div>
+
+@if (!_hasImage)
+{
+    <MudPaper Class="pa-8 mt-2 text-center" Outlined="true" Style="cursor:pointer" @onclick="TriggerUpload">
+        <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Primary" />
+        <MudText Class="mt-2">点击或拖拽上传图片（JPG / PNG / WEBP）</MudText>
+        <MudText Typo="Typo.caption">推荐先处理小面积水印，效果更自然</MudText>
+    </MudPaper>
+}
+
+@if (!string.IsNullOrEmpty(_status))
+{
+    <MudAlert Severity="@_statusSeverity" Class="mt-3" Dense="true">@_status</MudAlert>
+}
+
+<MudExpansionPanels Class="mt-4">
+    <MudExpansionPanel Text="使用说明与技术说明" IsInitiallyExpanded="false">
+        <MudText Typo="Typo.body2">
+            <ol>
+                <li>上传需要处理的图片。</li>
+                <li>用<strong>画笔</strong>仔细涂抹水印、Logo、文字或污点区域（红色半透明为遮罩）。</li>
+                <li>可用<strong>橡皮</strong>修正涂抹范围。</li>
+                <li>选择模式：<strong>修复模式</strong>会用周围像素智能填充；切换为<strong>透明模式</strong>则把遮罩区域变为真正透明（棋盘格背景表示透明区域）。</li>
+                <li>点击「开始修复 / 开始抠空」，完成后下载 PNG 结果（透明模式会保留 Alpha 通道）。</li>
+                <li><strong>一键去背景</strong>：自动采样四角颜色，把相似背景变成透明，特别适合 Logo / 图标去白底或浅色底。</li>
+            </ol>
+            <br />
+            <strong>关于「完整 AI 模型」：</strong><br />
+            开源项目 <MudLink Href="https://github.com/IamRamgarhia/free-ai-watermark-remover" Target="_blank">WatermarkOut</MudLink>
+            使用 MI-GAN（ONNX，约 29MB）在浏览器内做生成式修复，效果更强，尤其适合大面积或不规则遮挡。
+            当前工具箱优先保持轻量，采用高效局部修复算法；如需完整模型，可在本页基础上通过 JS 互操作按需加载 ONNX Runtime + 模型文件。
+        </MudText>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    private ElementReference _fileInput;
+    private bool _hasImage;
+    private bool _processing;
+    private string _mode = "brush";
+    private int _brushSize = 24;
+    private string? _resultUrl;
+    private string _status = "";
+    private Severity _statusSeverity = Severity.Info;
+    private bool _jsReady;
+    private bool _eraseMode;
+    private IJSObjectReference? _module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeAsync<object>("eval", @"
+                    if (!window.ImageRepair) {
+                        var s = document.createElement('script');
+                        s.src = 'js/image-repair.js';
+                        s.onload = () => window._imageRepairLoaded = true;
+                        document.head.appendChild(s);
+                    } else {
+                        window._imageRepairLoaded = true;
+                    }
+                ");
+                // wait a bit for script
+                await Task.Delay(100);
+                _jsReady = await JS.InvokeAsync<bool>("eval", "!!window.ImageRepair");
+                if (_jsReady)
+                {
+                    await JS.InvokeVoidAsync("ImageRepair.init", "repair-canvas", "repair-mask");
+                }
+            }
+            catch (Exception ex)
+            {
+                _status = "初始化画布失败: " + ex.Message;
+                _statusSeverity = Severity.Error;
+            }
+        }
+    }
+
+    private async Task TriggerUpload()
+    {
+        await JS.InvokeVoidAsync("eval", "document.querySelector('input[type=file]').click()");
+    }
+
+    private async Task OnFileSelected(ChangeEventArgs e)
+    {
+        _resultUrl = null;
+        _status = "正在加载图片...";
+        _statusSeverity = Severity.Info;
+        StateHasChanged();
+
+        try
+        {
+            // Read file as data URL via JS
+            var dataUrl = await JS.InvokeAsync<string>("eval", @"
+                new Promise((resolve, reject) => {
+                    const input = document.querySelector('input[type=file]');
+                    const file = input.files[0];
+                    if (!file) { resolve(null); return; }
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                })
+            ");
+
+            if (string.IsNullOrEmpty(dataUrl))
+            {
+                _status = "未选择文件";
+                return;
+            }
+
+            if (!_jsReady)
+            {
+                await Task.Delay(200);
+                _jsReady = await JS.InvokeAsync<bool>("eval", "!!window.ImageRepair");
+                if (_jsReady)
+                    await JS.InvokeVoidAsync("ImageRepair.init", "repair-canvas", "repair-mask");
+            }
+
+            await JS.InvokeAsync<object>("ImageRepair.loadImage", dataUrl);
+            _hasImage = true;
+            _status = "图片已加载，请用画笔涂抹需要去除的区域";
+            _statusSeverity = Severity.Success;
+            await SetMode("brush");
+            await OnBrushSizeChanged(_brushSize);
+        }
+        catch (Exception ex)
+        {
+            _status = "加载失败: " + ex.Message;
+            _statusSeverity = Severity.Error;
+        }
+    }
+
+    private async Task SetMode(string mode)
+    {
+        _mode = mode;
+        if (_jsReady)
+            await JS.InvokeVoidAsync("ImageRepair.setMode", mode);
+    }
+
+    private async Task OnBrushSizeChanged(int size)
+    {
+        _brushSize = size;
+        if (_jsReady)
+            await JS.InvokeVoidAsync("ImageRepair.setBrushSize", size);
+    }
+
+    private async Task OnOutputModeChanged(bool toggled)
+    {
+        _eraseMode = toggled;
+    }
+
+    private async Task ClearMask()
+    {
+        if (_jsReady)
+            await JS.InvokeVoidAsync("ImageRepair.clearMask");
+        _resultUrl = null;
+        _status = "遮罩已清除";
+        _statusSeverity = Severity.Info;
+    }
+
+    private async Task Process()
+    {
+        if (!_jsReady || !_hasImage) return;
+        _processing = true;
+        _status = "正在修复，请稍候...";
+        _statusSeverity = Severity.Info;
+        StateHasChanged();
+
+        try
+        {
+            // Give UI a chance to update
+            await Task.Delay(50);
+            await JS.InvokeVoidAsync("ImageRepair.setOutputMode", _eraseMode ? "erase" : "inpaint");
+            var result = await JS.InvokeAsync<string>("ImageRepair.processSimple");
+            if (!string.IsNullOrEmpty(result))
+            {
+                _resultUrl = result;
+                _status = _eraseMode
+                    ? "抠空完成！遮罩区域已变为透明，下载 PNG 即可保留透明通道。"
+                    : "修复完成！可下载结果。如效果不理想，可重新涂抹后再次修复。";
+                _statusSeverity = Severity.Success;
+            }
+            else
+            {
+                _status = "处理失败，请确认已涂抹遮罩区域";
+                _statusSeverity = Severity.Warning;
+            }
+        }
+        catch (Exception ex)
+        {
+            _status = "处理出错: " + ex.Message;
+            _statusSeverity = Severity.Error;
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private async Task RemoveBackground()
+    {
+        if (!_jsReady || !_hasImage) return;
+        _processing = true;
+        _status = "正在一键去除背景...";
+        _statusSeverity = Severity.Info;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(50);
+            // tolerance 36 works well for light/near-white or solid color backgrounds
+            var result = await JS.InvokeAsync<string>("ImageRepair.removeBackground", 36);
+            if (!string.IsNullOrEmpty(result))
+            {
+                _resultUrl = result;
+                _status = "背景已去除！预览中棋盘格区域即为透明。可下载 PNG 使用，或继续用画笔微调。";
+                _statusSeverity = Severity.Success;
+            }
+            else
+            {
+                _status = "去背景失败，请确认图片已加载";
+                _statusSeverity = Severity.Warning;
+            }
+        }
+        catch (Exception ex)
+        {
+            _status = "去背景出错: " + ex.Message;
+            _statusSeverity = Severity.Error;
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_jsReady)
+                await JS.InvokeVoidAsync("ImageRepair.reset");
+        }
+        catch { /* ignore */ }
+    }
+}

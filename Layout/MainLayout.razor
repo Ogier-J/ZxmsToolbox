@@ -8,7 +8,10 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
-        <MudText Typo="Typo.h6" Class="ml-2">ZXMS 极客工具箱</MudText>
+        <div class="d-flex align-items-center gap-2">
+            <img src="logo-header-square.png" alt="ZXMS Logo" style="height:32px;width:32px;" />
+            <span class="fw-semibold">ZXMS 极客工具箱</span>
+        </div>
         <MudSpacer />
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
         <MudLink Href="https://learn.microsoft.com/aspnet/core/" Target="_blank" Color="Color.Inherit" Underline="Underline.None">
