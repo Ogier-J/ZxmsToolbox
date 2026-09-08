@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>粒子特效在线编辑器 - 中文版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#1a1a2e;color:#eee;height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+.toolbar{background:#16213e;padding:8px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-bottom:2px solid #0f3460;flex-shrink:0;min-height:50px}
+.toolbar .title{font-size:18px;font-weight:bold;color:#e94560;margin-right:12px}
+.toolbar .title small{font-size:12px;color:#7a8ba8;font-weight:normal;margin-left:6px}
+.toolbar .btn{background:#e94560;border:none;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:13px;font-family:inherit;transition:.15s}
+.toolbar .btn:hover{background:#c73652;transform:scale(1.03)}
+.toolbar .btn-secondary{background:#0f3460}.toolbar .btn-secondary:hover{background:#1a4f7a}
+.toolbar .btn-success{background:#2d6a4f}.toolbar .btn-success:hover{background:#1e4d3a}
+.toolbar .btn-warn{background:#b45309}.toolbar .btn-warn:hover{background:#92400e}
+.toolbar .spacer{flex:1}
+.toolbar .hint{font-size:11px;color:#7a8ba8;padding:3px 8px;background:#0d0d1a;border-radius:3px;border:1px solid #2a2a4a}
+.toolbar .hint kbd{color:#f5c842;background:#1a1a2e;padding:1px 5px;border-radius:2px;font-size:10px}
+.main{display:flex;flex:1;overflow:hidden}
+.canvas-wrapper{flex:1;background:#0d0d1a;position:relative;overflow:hidden}
+.canvas-wrapper canvas{display:block;width:100%;height:100%;cursor:crosshair;background:radial-gradient(ellipse at center,#1a1a3e 0%,#0a0a15 100%)}
+.canvas-overlay-info{position:absolute;bottom:10px;left:14px;font-size:12px;color:#4a5a7a;pointer-events:none;background:rgba(0,0,0,.55);padding:4px 12px;border-radius:12px}
+.tex-preview{position:absolute;top:10px;left:14px;width:48px;height:48px;border:2px solid #e94560;border-radius:6px;background:#0d0d1a;object-fit:contain;display:none;image-rendering:pixelated}
+.panel{width:360px;min-width:360px;background:#16213e;padding:12px 16px;overflow-y:auto;border-left:1px solid #0f3460;flex-shrink:0}
+.panel::-webkit-scrollbar{width:5px}.panel::-webkit-scrollbar-thumb{background:#e94560;border-radius:3px}
+.panel h3{color:#e94560;font-size:14px;margin:10px 0 8px;padding-bottom:5px;border-bottom:1px solid #0f3460;display:flex;justify-content:space-between;align-items:center}
+.panel h3:first-of-type{margin-top:0}.panel h3 span{font-weight:normal;font-size:11px;color:#7a8ba8}
+.param-group{margin-bottom:5px}
+.param-group label{display:flex;justify-content:space-between;font-size:12px;color:#a8d8ea;padding:1px 0}
+.param-group label .val{color:#f5c842;font-weight:bold;min-width:32px;text-align:right}
+.param-group input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:#0f3460;border-radius:2px;outline:none;margin:2px 0 3px}
+.param-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#e94560;cursor:pointer}
+.param-group input[type=color]{width:100%;height:28px;border:1px solid #0f3460;background:transparent;cursor:pointer;border-radius:4px;padding:1px}
+.param-group select{width:100%;padding:5px 8px;background:#0f3460;color:#eee;border:none;border-radius:4px;font-size:12px;font-family:inherit;cursor:pointer}
+.param-row{display:flex;gap:10px}.param-row .param-group{flex:1}
+.color-row{display:flex;gap:10px}
+.panel .btn-block{width:100%;padding:9px;margin-top:5px;font-size:13px;border:none;border-radius:4px;cursor:pointer;font-family:inherit;color:#fff;transition:.15s}
+.btn-block.export{background:#2d6a4f}.btn-block.export:hover{background:#1e4d3a}
+.btn-block.import{background:#0f3460}.btn-block.import:hover{background:#1a4f7a}
+.btn-block.reset{background:#6b2d3a}.btn-block.reset:hover{background:#8a3a4a}
+.btn-block.upload{background:#b45309}.btn-block.upload:hover{background:#92400e}
+#texInput,#plistInput{display:none}
+.status-bar{background:#0d0d1a;padding:4px 16px;border-top:1px solid #0f3460;font-size:12px;color:#5a6a8a;display:flex;justify-content:space-between;flex-shrink:0}
+.status-bar .fps{color:#4ecdc4}.status-bar .count{color:#f5c842}.status-bar .tex-name{color:#a8d8ea;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:768px){.panel{width:280px;min-width:280px}.toolbar .hint{display:none}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <span class="title">✨ 粒子编辑器 <small>v2.1 · Cocos2d-x</small></span>
+  <button class="btn btn-success" id="btnExport">📥 导出 .plist</button>
+  <button class="btn btn-warn" id="btnUploadTex">🖼 上传纹理</button>
+  <button class="btn btn-secondary" id="btnImport">📤 导入 .plist</button>
+  <button class="btn btn-secondary" id="btnSnapshot">📸 快照</button>
+  <span class="spacer"></span>
+  <span class="hint"><kbd>Alt</kbd>+<kbd>G</kbd> 重力 · <kbd>Alt</kbd>+<kbd>R</kbd> 半径 · <kbd>Alt</kbd>+<kbd>P</kbd> 导出</span>
+</div>
+<div class="main">
+  <div class="canvas-wrapper">
+    <canvas id="canvas"></canvas>
+    <img id="texPreview" class="tex-preview" alt="纹理">
+    <div class="canvas-overlay-info">🖱 拖动红点改变发射位置 · 滚轮调整大小 · 支持拖放 PNG</div>
+  </div>
+  <div class="panel" id="panel">
+    <h3>🎯 发射器类型 <span>Alt+G / Alt+R</span></h3>
+    <div class="param-group">
+      <select id="emitterType">
+        <option value="0">重力模式 (Gravity) — 火焰/烟雾/星空</option>
+        <option value="1">半径模式 (Radius) — 光环/漩涡/爆炸</option>
+      </select>
+    </div>
+    <h3>🖼 粒子纹理</h3>
+    <div class="param-group">
+      <button class="btn-block upload" id="btnUploadTex2">上传 / 更换粒子纹理 (PNG)</button>
+      <div style="font-size:11px;color:#5a6a8a;margin-top:4px;text-align:center" id="texStatus">当前：默认圆形</div>
+    </div>
+    <h3>📊 基本参数</h3>
+    <div class="param-group"><label>最大粒子数 <span class="val" id="v_total">200</span></label><input type="range" id="totalParticles" min="10" max="2000" value="200" step="10"></div>
+    <div class="param-group"><label>发射速率 <span class="val" id="v_rate">40</span></label><input type="range" id="emissionRate" min="1" max="300" value="40"></div>
+    <div class="param-group"><label>持续时间 (秒,-1=永久) <span class="val" id="v_duration">-1</span></label><input type="range" id="duration" min="-1" max="20" step="0.5" value="-1"></div>
+    <div class="param-group"><label>生命周期 (秒) <span class="val" id="v_life">2.5</span></label><input type="range" id="life" min="0.2" max="12" step="0.1" value="2.5"></div>
+    <div class="param-group"><label>生命周期变化 <span class="val" id="v_lifeVar">0.5</span></label><input type="range" id="lifeVar" min="0" max="5" step="0.1" value="0.5"></div>
+    <div class="param-row">
+      <div class="param-group"><label>速度 <span class="val" id="v_speed">80</span></label><input type="range" id="speed" min="0" max="400" value="80"></div>
+      <div class="param-group"><label>速度变化 <span class="val" id="v_speedVar">40</span></label><input type="range" id="speedVar" min="0" max="200" value="40"></div>
+    </div>
+    <h3>🎨 颜色</h3>
+    <div class="color-row">
+      <div class="param-group"><label>起始颜色</label><input type="color" id="startColor" value="#ff6b6b"></div>
+      <div class="param-group"><label>结束颜色</label><input type="color" id="endColor" value="#4ecdc4"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-group"><label>起始透明度 <span class="val" id="v_startA">1.00</span></label><input type="range" id="startAlpha" min="0" max="1" step="0.05" value="1"></div>
+      <div class="param-group"><label>结束透明度 <span class="val" id="v_endA">0.00</span></label><input type="range" id="endAlpha" min="0" max="1" step="0.05" value="0"></div>
+    </div>
+    <h3>📏 大小</h3>
+    <div class="param-row">
+      <div class="param-group"><label>起始大小 <span class="val" id="v_startSize">32</span></label><input type="range" id="startSize" min="1" max="150" value="32"></div>
+      <div class="param-group"><label>结束大小 <span class="val" id="v_endSize">8</span></label><input type="range" id="endSize" min="0" max="100" value="8"></div>
+    </div>
+    <div class="param-group"><label>大小变化 <span class="val" id="v_sizeVar">10</span></label><input type="range" id="sizeVar" min="0" max="80" value="10"></div>
+    <h3>⚡ 物理参数</h3>
+    <div class="param-group"><label>重力 Y <span class="val" id="v_gravity">90</span></label><input type="range" id="gravity" min="-400" max="400" value="90"></div>
+    <div class="param-row">
+      <div class="param-group"><label>起始半径 <span class="val" id="v_radius">80</span></label><input type="range" id="radius" min="0" max="400" value="80"></div>
+      <div class="param-group"><label>结束半径 <span class="val" id="v_endRadius">0</span></label><input type="range" id="endRadius" min="0" max="400" value="0"></div>
+    </div>
+    <div class="param-group"><label>旋转速度(半径) <span class="val" id="v_rotateSpeed">45</span></label><input type="range" id="rotateSpeed" min="-300" max="300" value="45"></div>
+    <div class="param-group"><label>径向加速度 <span class="val" id="v_radialAccel">0</span></label><input type="range" id="radialAccel" min="-200" max="200" value="0"></div>
+    <div class="param-group"><label>切向加速度 <span class="val" id="v_tangentialAccel">0</span></label><input type="range" id="tangentialAccel" min="-200" max="200" value="0"></div>
+    <h3>📐 发射角度</h3>
+    <div class="param-row">
+      <div class="param-group"><label>角度 <span class="val" id="v_angle">90</span></label><input type="range" id="angle" min="-360" max="360" value="90"></div>
+      <div class="param-group"><label>角度变化 <span class="val" id="v_angleVar">360</span></label><input type="range" id="angleVar" min="0" max="360" value="360"></div>
+    </div>
+    <h3>🔧 操作</h3>
+    <button class="btn-block export" id="btnExport2">📥 导出为 .plist (Cocos2d-x)</button>
+    <button class="btn-block import" id="btnImport2">📤 从 .plist 导入</button>
+    <button class="btn-block reset" id="btnReset">🔄 重置为默认参数</button>
+    <div style="margin-top:8px;font-size:11px;color:#4a5a7a;text-align:center;line-height:1.5">💡 导出后把 .plist 与纹理 PNG 放入同一目录<br>支持 Cocos2d-x / Creator 2.x 粒子系统</div>
+  </div>
+</div>
+<div class="status-bar">
+  <span>🟢 就绪 · 粒子数: <span class="count" id="statusCount">0</span> · <span class="tex-name" id="statusTex">默认圆形</span></span>
+  <span>FPS: <span class="fps" id="statusFps">60</span></span>
+</div>
+<input type="file" id="texInput" accept="image/png,image/jpeg,image/gif">
+<input type="file" id="plistInput" accept=".plist,.xml,text/xml">
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+let W=0,H=0,emitterX=0,emitterY=0,dragging=false;
+function resize(){const r=canvas.parentElement.getBoundingClientRect();W=canvas.width=Math.max(1,Math.floor(r.width));H=canvas.height=Math.max(1,Math.floor(r.height));}
+function centerEmitter(){emitterX=W/2;emitterY=H*0.55;}
+resize();centerEmitter();window.addEventListener('resize',()=>{resize();centerEmitter();});
+
+let particleTexture=null,textureFileName='particle.png',textureBase64=null;
+const P={totalParticles:200,emissionRate:40,duration:-1,life:2.5,lifeVar:0.5,speed:80,speedVar:40,startColor:'#ff6b6b',endColor:'#4ecdc4',startAlpha:1,endAlpha:0,startSize:32,endSize:8,sizeVar:10,gravity:90,radialAccel:0,tangentialAccel:0,radius:80,endRadius:0,rotateSpeed:45,angle:90,angleVar:360,emitterType:0};
+let particles=[],emitAccum=0,elapsed=0,isEmitting=true;
+
+function hexToRgb(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?{r:parseInt(r[1],16),g:parseInt(r[2],16),b:parseInt(r[3],16)}:{r:255,g:100,b:100};}
+function rgbToHex(r,g,b){return'#'+[r,g,b].map(c=>Math.min(255,Math.max(0,Math.round(c))).toString(16).padStart(2,'0')).join('');}
+function lerp(a,b,t){return a+(b-a)*t;}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
+class Particle{
+  constructor(){this.reset();}
+  reset(){
+    const ang=(P.angle+(Math.random()-0.5)*P.angleVar)*Math.PI/180;
+    const spd=P.speed+(Math.random()-0.5)*P.speedVar;
+    this.x=emitterX+(Math.random()-0.5)*4;this.y=emitterY+(Math.random()-0.5)*4;
+    this.vx=Math.cos(ang)*spd;this.vy=Math.sin(ang)*spd;
+    this.life=Math.max(0.05,P.life+(Math.random()-0.5)*P.lifeVar);this.maxLife=this.life;
+    this.startSize=Math.max(1,P.startSize+(Math.random()-0.5)*P.sizeVar);
+    this.endSize=Math.max(0,P.endSize+(Math.random()-0.5)*P.sizeVar*0.5);
+    const sc=hexToRgb(P.startColor),ec=hexToRgb(P.endColor);
+    this.sr=sc.r;this.sg=sc.g;this.sb=sc.b;this.sa=P.startAlpha;
+    this.er=ec.r;this.eg=ec.g;this.eb=ec.b;this.ea=P.endAlpha;
+    this.radius=P.radius+(Math.random()-0.5)*20;this.endRadius=P.endRadius;
+    this.angleRad=Math.random()*Math.PI*2;this.rotateSpeed=(P.rotateSpeed+(Math.random()-0.5)*30)*Math.PI/180;
+    this.alive=true;
+  }
+  update(dt){
+    this.life-=dt;if(this.life<=0){this.alive=false;return;}
+    const t=1-this.life/this.maxLife;
+    this.curSize=lerp(this.startSize,this.endSize,t);
+    this.r=lerp(this.sr,this.er,t);this.g=lerp(this.sg,this.eg,t);this.b=lerp(this.sb,this.eb,t);this.a=lerp(this.sa,this.ea,t);
+    if(P.emitterType===0){
+      this.vy+=P.gravity*dt;
+      const dx=this.x-emitterX,dy=this.y-emitterY,dist=Math.sqrt(dx*dx+dy*dy)+0.001;
+      if(P.radialAccel){const f=P.radialAccel*dt;this.vx+=(dx/dist)*f;this.vy+=(dy/dist)*f;}
+      if(P.tangentialAccel){const f=P.tangentialAccel*dt;this.vx+=(-dy/dist)*f;this.vy+=(dx/dist)*f;}
+      this.x+=this.vx*dt;this.y+=this.vy*dt;
+    }else{
+      this.angleRad+=this.rotateSpeed*dt;
+      this.radius=lerp(this.radius,this.endRadius,t*0.02)+(P.gravity*0.15*dt);
+      this.x=emitterX+Math.cos(this.angleRad)*this.radius;
+      this.y=emitterY+Math.sin(this.angleRad)*this.radius;
+    }
+  }
+  draw(){
+    if(this.curSize<0.5||this.a<=0.01)return;
+    ctx.globalAlpha=clamp(this.a,0,1);
+    const s=this.curSize;
+    if(particleTexture&&particleTexture.complete){
+      ctx.save();ctx.translate(this.x,this.y);ctx.rotate((this.angleRad||0)*0.3);
+      ctx.drawImage(particleTexture,-s/2,-s/2,s,s);ctx.restore();
+    }else{
+      ctx.fillStyle=`rgb(${this.r|0},${this.g|0},${this.b|0})`;
+      ctx.beginPath();ctx.arc(this.x,this.y,s*0.5,0,Math.PI*2);ctx.fill();
+    }
+  }
+}
+
+function spawnParticle(){if(particles.length<P.totalParticles)particles.push(new Particle());}
+function updateParticles(dt){
+  if(P.duration>=0){elapsed+=dt;if(elapsed>=P.duration)isEmitting=false;}else isEmitting=true;
+  if(isEmitting&&P.emissionRate>0){emitAccum+=P.emissionRate*dt;while(emitAccum>=1){spawnParticle();emitAccum-=1;}}
+  for(let i=particles.length-1;i>=0;i--){particles[i].update(dt);if(!particles[i].alive)particles.splice(i,1);}
+}
+function drawParticles(){
+  ctx.clearRect(0,0,W,H);
+  ctx.globalAlpha=0.35;ctx.fillStyle='#e94560';ctx.beginPath();ctx.arc(emitterX,emitterY,14,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;ctx.fillStyle='#e94560';ctx.beginPath();ctx.arc(emitterX,emitterY,4,0,Math.PI*2);ctx.fill();
+  for(const p of particles)p.draw();ctx.globalAlpha=1;
+}
+
+let lastTime=0,fpsCount=0,fpsTime=0,currentFps=60;
+function loop(time){
+  const dt=lastTime?Math.min((time-lastTime)/1000,0.05):0.016;lastTime=time;
+  fpsCount++;if(time-fpsTime>1000){currentFps=fpsCount;fpsCount=0;fpsTime=time;document.getElementById('statusFps').textContent=currentFps;}
+  updateParticles(dt);drawParticles();document.getElementById('statusCount').textContent=particles.length;
+  requestAnimationFrame(loop);
+}
+
+function readUI(){
+  const g=id=>parseFloat(document.getElementById(id).value),c=id=>document.getElementById(id).value;
+  P.totalParticles=g('totalParticles');P.emissionRate=g('emissionRate');P.duration=g('duration');
+  P.life=g('life');P.lifeVar=g('lifeVar');P.speed=g('speed');P.speedVar=g('speedVar');
+  P.startColor=c('startColor');P.endColor=c('endColor');P.startAlpha=g('startAlpha');P.endAlpha=g('endAlpha');
+  P.startSize=g('startSize');P.endSize=g('endSize');P.sizeVar=g('sizeVar');
+  P.gravity=g('gravity');P.radialAccel=g('radialAccel');P.tangentialAccel=g('tangentialAccel');
+  P.radius=g('radius');P.endRadius=g('endRadius');P.rotateSpeed=g('rotateSpeed');
+  P.angle=g('angle');P.angleVar=g('angleVar');P.emitterType=parseInt(document.getElementById('emitterType').value,10);
+  const map={v_total:P.totalParticles,v_rate:P.emissionRate,v_duration:P.duration,v_life:P.life.toFixed(1),v_lifeVar:P.lifeVar.toFixed(1),
+    v_speed:P.speed,v_speedVar:P.speedVar,v_startSize:P.startSize,v_endSize:P.endSize,v_sizeVar:P.sizeVar,
+    v_gravity:P.gravity,v_radialAccel:P.radialAccel,v_tangentialAccel:P.tangentialAccel,v_radius:P.radius,v_endRadius:P.endRadius,
+    v_rotateSpeed:P.rotateSpeed,v_angle:P.angle,v_angleVar:P.angleVar,v_startA:P.startAlpha.toFixed(2),v_endA:P.endAlpha.toFixed(2)};
+  for(const[id,v]of Object.entries(map)){const el=document.getElementById(id);if(el)el.textContent=v;}
+}
+document.querySelectorAll('#panel input,#panel select').forEach(el=>el.addEventListener('input',readUI));
+
+document.addEventListener('keydown',e=>{
+  if(!e.altKey)return;const k=e.key.toUpperCase();
+  if(k==='G'){e.preventDefault();document.getElementById('emitterType').value='0';readUI();}
+  if(k==='R'){e.preventDefault();document.getElementById('emitterType').value='1';readUI();}
+  if(k==='P'){e.preventDefault();exportPlist();}
+});
+
+canvas.addEventListener('mousedown',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*(W/rect.width),y=(e.clientY-rect.top)*(H/rect.height);
+  if(Math.hypot(x-emitterX,y-emitterY)<40)dragging=true;
+});
+canvas.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  const rect=canvas.getBoundingClientRect();
+  emitterX=(e.clientX-rect.left)*(W/rect.width);emitterY=(e.clientY-rect.top)*(H/rect.height);
+});
+canvas.addEventListener('mouseup',()=>dragging=false);
+canvas.addEventListener('mouseleave',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{e.preventDefault();const d=e.deltaY>0?-2:2;const n=clamp(P.startSize+d,1,150);document.getElementById('startSize').value=n;readUI();},{passive:false});
+canvas.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
+canvas.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))loadTextureFile(f);});
+
+function loadTextureFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      particleTexture=img;textureFileName=(file.name||'particle.png').replace(/\s+/g,'_');textureBase64=ev.target.result;
+      const preview=document.getElementById('texPreview');preview.src=textureBase64;preview.style.display='block';
+      document.getElementById('texStatus').textContent='当前：'+textureFileName;
+      document.getElementById('statusTex').textContent=textureFileName;
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+document.getElementById('btnUploadTex').onclick=()=>document.getElementById('texInput').click();
+document.getElementById('btnUploadTex2').onclick=()=>document.getElementById('texInput').click();
+document.getElementById('texInput').onchange=e=>{if(e.target.files[0])loadTextureFile(e.target.files[0]);e.target.value='';};
+
+function buildPlistXML(){
+  const isG=P.emitterType===0,sc=hexToRgb(P.startColor),ec=hexToRgb(P.endColor);
+  const fields={
+    maxParticles:P.totalParticles,duration:P.duration,
+    particleLifespan:P.life,particleLifespanVariance:P.lifeVar,emissionRate:P.emissionRate,
+    angle:P.angle,angleVariance:P.angleVar,speed:P.speed,speedVariance:P.speedVar,
+    sourcePositionx:0,sourcePositiony:0,sourcePositionVariancex:0,sourcePositionVariancey:0,
+    gravityx:0,gravityy:isG?P.gravity:0,
+    radialAcceleration:P.radialAccel,radialAccelVariance:0,
+    tangentialAcceleration:P.tangentialAccel,tangentialAccelVariance:0,
+    startColorRed:sc.r/255,startColorGreen:sc.g/255,startColorBlue:sc.b/255,startColorAlpha:P.startAlpha,
+    startColorVarianceRed:0,startColorVarianceGreen:0,startColorVarianceBlue:0,startColorVarianceAlpha:0,
+    finishColorRed:ec.r/255,finishColorGreen:ec.g/255,finishColorBlue:ec.b/255,finishColorAlpha:P.endAlpha,
+    finishColorVarianceRed:0,finishColorVarianceGreen:0,finishColorVarianceBlue:0,finishColorVarianceAlpha:0,
+    startParticleSize:P.startSize,startParticleSizeVariance:P.sizeVar,
+    finishParticleSize:P.endSize,finishParticleSizeVariance:P.sizeVar*0.5,
+    rotationStart:0,rotationStartVariance:0,rotationEnd:0,rotationEndVariance:0,
+    rotatePerSecond:isG?0:P.rotateSpeed,rotatePerSecondVariance:isG?0:20,
+    maxRadius:isG?0:P.radius,maxRadiusVariance:isG?0:10,minRadius:isG?0:P.endRadius,minRadiusVariance:0,
+    emitterType:P.emitterType,positionType:0,blendFuncSource:770,blendFuncDestination:1,
+    textureFileName:textureFileName||'particle.png'
+  };
+  let xml='<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n';
+  for(const[k,v]of Object.entries(fields)){
+    xml+=`  <key>${k}</key>\n`;
+    if(typeof v==='number')xml+=Number.isInteger(v)?`  <integer>${v}</integer>\n`:`  <real>${v}</real>\n`;
+    else xml+=`  <string>${v}</string>\n`;
+  }
+  if(textureBase64&&textureBase64.indexOf('base64,')>-1){
+    xml+='  <key>textureImageData</key>\n  <string>'+textureBase64.split('base64,')[1]+'</string>\n';
+  }
+  xml+='</dict>\n</plist>';
+  return xml;
+}
+
+function exportPlist(){
+  readUI();
+  const xml=buildPlistXML();
+  const blob=new Blob([xml],{type:'application/xml;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=(textureFileName?textureFileName.replace(/\.[^.]+$/,''):'particle')+'.plist';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
+  if(particleTexture&&textureBase64){
+    setTimeout(()=>{const a2=document.createElement('a');a2.href=textureBase64;a2.download=textureFileName||'particle.png';document.body.appendChild(a2);a2.click();document.body.removeChild(a2);},300);
+  }
+  alert('✅ 已导出 .plist'+(particleTexture?' 和纹理 PNG':'')+'\n请把文件放到同一目录后在 Cocos 中使用。');
+}
+
+function importPlist(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const doc=new DOMParser().parseFromString(e.target.result,'text/xml');
+      const dict=doc.querySelector('dict');if(!dict)throw new Error('无效 plist');
+      const children=Array.from(dict.children),map={};
+      for(let i=0;i<children.length-1;i++){
+        if(children[i].tagName==='key'){
+          const key=children[i].textContent.trim(),node=children[i+1];
+          let val=node.textContent.trim();
+          if(node.tagName==='real'||node.tagName==='integer')val=parseFloat(val);
+          map[key]=val;
+        }
+      }
+      const set=(id,v)=>{if(v!==undefined&&document.getElementById(id))document.getElementById(id).value=v;};
+      set('totalParticles',map.maxParticles);set('emissionRate',map.emissionRate);set('duration',map.duration);
+      set('life',map.particleLifespan||map.life);set('lifeVar',map.particleLifespanVariance||map.lifeVar);
+      set('speed',map.speed);set('speedVar',map.speedVariance||map.speedVar);
+      set('startSize',map.startParticleSize);set('endSize',map.finishParticleSize||map.endParticleSize);
+      set('sizeVar',map.startParticleSizeVariance);set('gravity',map.gravityy!==undefined?map.gravityy:map.gravity);
+      set('radialAccel',map.radialAcceleration||map.radialAccel);set('tangentialAccel',map.tangentialAcceleration||map.tangentialAccel);
+      set('radius',map.maxRadius||map.radius);set('endRadius',map.minRadius||map.endRadius);
+      set('rotateSpeed',map.rotatePerSecond);set('angle',map.angle);set('angleVar',map.angleVariance||map.angleVar);
+      set('emitterType',map.emitterType);set('startAlpha',map.startColorAlpha);set('endAlpha',map.finishColorAlpha||map.endColorAlpha);
+      if(map.startColorRed!==undefined)document.getElementById('startColor').value=rgbToHex(Math.round((map.startColorRed||0)*255),Math.round((map.startColorGreen||0)*255),Math.round((map.startColorBlue||0)*255));
+      if(map.finishColorRed!==undefined||map.endColorRed!==undefined){
+        const r=map.finishColorRed!==undefined?map.finishColorRed:map.endColorRed;
+        const g=map.finishColorGreen!==undefined?map.finishColorGreen:map.endColorGreen;
+        const b=map.finishColorBlue!==undefined?map.finishColorBlue:map.endColorBlue;
+        document.getElementById('endColor').value=rgbToHex(Math.round((r||0)*255),Math.round((g||0)*255),Math.round((b||0)*255));
+      }
+      if(map.textureFileName)textureFileName=map.textureFileName;
+      if(map.textureImageData&&typeof map.textureImageData==='string'){
+        const img=new Image();
+        img.onload=()=>{particleTexture=img;textureBase64='data:image/png;base64,'+map.textureImageData;
+          document.getElementById('texPreview').src=textureBase64;document.getElementById('texPreview').style.display='block';
+          document.getElementById('texStatus').textContent='当前：'+textureFileName;document.getElementById('statusTex').textContent=textureFileName;};
+        img.src='data:image/png;base64,'+map.textureImageData;
+      }
+      readUI();particles=[];elapsed=0;isEmitting=true;alert('✅ 导入成功！');
+    }catch(err){alert('❌ 导入失败：'+err.message);}
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('btnExport').onclick=exportPlist;
+document.getElementById('btnExport2').onclick=exportPlist;
+document.getElementById('btnImport').onclick=()=>document.getElementById('plistInput').click();
+document.getElementById('btnImport2').onclick=()=>document.getElementById('plistInput').click();
+document.getElementById('plistInput').onchange=e=>{if(e.target.files[0])importPlist(e.target.files[0]);e.target.value='';};
+document.getElementById('btnSnapshot').onclick=()=>{const a=document.createElement('a');a.download='particle-snapshot.png';a.href=canvas.toDataURL('image/png');a.click();};
+document.getElementById('btnReset').onclick=()=>{
+  const d={totalParticles:200,emissionRate:40,duration:-1,life:2.5,lifeVar:0.5,speed:80,speedVar:40,startSize:32,endSize:8,sizeVar:10,gravity:90,radialAccel:0,tangentialAccel:0,radius:80,endRadius:0,rotateSpeed:45,angle:90,angleVar:360,emitterType:0,startColor:'#ff6b6b',endColor:'#4ecdc4',startAlpha:1,endAlpha:0};
+  for(const[id,v]of Object.entries(d)){const el=document.getElementById(id);if(el)el.value=v;}
+  particleTexture=null;textureBase64=null;textureFileName='particle.png';
+  document.getElementById('texPreview').style.display='none';document.getElementById('texStatus').textContent='当前：默认圆形';document.getElementById('statusTex').textContent='默认圆形';
+  readUI();particles=[];elapsed=0;isEmitting=true;centerEmitter();
+};
+
+readUI();requestAnimationFrame(loop);
+console.log('✨ 粒子编辑器 v2.1 已启动');
+</script>
+</body>
+</html>

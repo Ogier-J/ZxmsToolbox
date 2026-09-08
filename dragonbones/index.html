@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DragonBones 即时预览</title>
+  <script type="module" crossorigin src="./assets/index-CPCjlE4t.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DyYms47O.css">
+</head>
+<body>
+  <div id="app">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <label class="btn primary full">
+          选择大文件夹
+          <input type="file" id="folderInput" webkitdirectory directory multiple hidden />
+        </label>
+        <input type="text" id="searchInput" placeholder="搜索动画..." />
+      </div>
+      <div id="nodeList" class="node-list">
+        <div class="empty-tip">选择包含多个子文件夹的大目录<br/>每个子文件夹需有骨骼 + 图集 JSON + 图片</div>
+      </div>
+      <div class="sidebar-footer">
+        <span id="folderCount">0 个动画</span>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="toolbar">
+        <div class="controls" id="controls" style="display:none;">
+          <span id="currentName" class="current-name"></span>
+          <select id="animSelect"></select>
+          <button id="playBtn" class="btn">播放</button>
+          <button id="pauseBtn" class="btn">暂停</button>
+          <label>
+            速度
+            <input type="range" id="speedRange" min="0.1" max="3" step="0.1" value="1" />
+            <span id="speedValue">1.0</span>
+          </label>
+          <button id="clearBtn" class="btn danger">清除</button>
+        </div>
+        <div class="manual-upload" id="manualUpload">
+          <span class="hint">或手动选单套：</span>
+          <label class="btn small">
+            骨骼
+            <input type="file" id="skeInput" accept=".dbbin,.json" hidden />
+          </label>
+          <label class="btn small">
+            图集JSON
+            <input type="file" id="texJsonInput" accept=".json" hidden />
+          </label>
+          <label class="btn small">
+            图片
+            <input type="file" id="texPngInput" accept=".png,.jpg,.webp" hidden />
+          </label>
+          <button id="loadBtn" class="btn small primary" disabled>加载</button>
+        </div>
+      </div>
+
+      <div id="canvas-container"></div>
+      <div id="status">请选择大文件夹，或手动加载单套资源</div>
+    </div>
+  </div>
+</body>
+</html>
